@@ -6,6 +6,9 @@ uniform mat4 projectionMatrix;
 uniform mat4 viewingMatrix;
 uniform mat4 modelMatrix;
 
+out vec3 FragPos;  
+out vec3 Normal;
+
 void main()
 {
     vec4 transformedPosition = projectionMatrix*viewingMatrix*modelMatrix*vec4(position,1.0f);
