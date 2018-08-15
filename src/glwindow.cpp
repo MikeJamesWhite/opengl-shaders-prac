@@ -161,17 +161,10 @@ void OpenGLWindow::initGL()
     shader = loadShaderProgram("simple.vert", "simple.frag");
     glUseProgram(shader);
 
-    // Set our viewing and projection matrices, since these do not change over time
+    // Set ourprojection matrix, since these do not change over time
     glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), 4.0f/3.0f, 0.1f, 10.0f);
     int projectionMatrixLoc = glGetUniformLocation(shader, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLoc, 1, false, &projectionMat[0][0]);
-
-    glm::vec3 eyeLoc(0.0f, 0.0f, 2.0f);
-    glm::vec3 targetLoc(0.0f, 0.0f, 0.0f);
-    glm::vec3 upDir(0.0f, 1.0f, 0.0f);
-    glm::mat4 viewingMat = glm::lookAt(eyeLoc, targetLoc, upDir);
-    int viewingMatrixLoc = glGetUniformLocation(shader, "viewingMatrix");
-    glUniformMatrix4fv(viewingMatrixLoc, 1, false, &viewingMat[0][0]);
 
     // Load the model that we want to use and buffer the vertex attributes
     geometry.loadFromOBJFile("cube.obj");
@@ -226,6 +219,19 @@ void OpenGLWindow::render()
 
     childModelMat = modelMat * childModelMat;
     glUniformMatrix4fv(modelMatrixLoc, 1, false, &childModelMat[0][0]);
+
+    // Update camera stuff
+    glm::vec3 eyeLoc(0.0f, 0.0f, 2.0f);
+    glm::vec3 targetLoc(0.0f, 0.0f, 0.0f);
+    glm::vec3 upDir(0.0f, 1.0f, 0.0f);
+    viewingMat = glm::lookAt(eyeLoc, targetLoc, upDir);
+
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    int viewingMatrixLoc = glGetUniformLocation(shader, "viewingMatrix");
+    glUniformMatrix4fv(viewingMatrixLoc, 1, false, &viewingMat[0][0]);
 
     int childColorIndex = (colorIndex+1)%5;
     glUniform3fv(colorLoc, 1, &entityColors[3*childColorIndex]);
@@ -284,7 +290,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
         else if(e.key.keysym.sym == SDLK_a)
         {
-            parentEntity.rotation[rotateDirection] -= glm::radians(15.0f);
+
+            cameraEntity.rotation[rotateDirection] -= glm::radians(15.0f);
         }
         else if(e.key.keysym.sym == SDLK_s)
         {
@@ -292,21 +299,9 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         else if(e.key.keysym.sym == SDLK_d)
         {
-            parentEntity.rotation[rotateDirection] += glm::radians(15.0f);
+            cameraEntity.rotation[rotateDirection] += glm::radians(15.0f);
         }
 
-        else if(e.key.keysym.sym == SDLK_z)
-        {
-            parentEntity.scale[scaleDirection] -= 0.2f;
-        }
-        else if(e.key.keysym.sym == SDLK_x)
-        {
-            scaleDirection = (scaleDirection+1)%3;
-        }
-        else if(e.key.keysym.sym == SDLK_c)
-        {
-            parentEntity.scale[scaleDirection] += 0.2f;
-        }
     }
     return true;
 }

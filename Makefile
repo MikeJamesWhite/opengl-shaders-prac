@@ -12,7 +12,7 @@ TARGETPATH=$(BUILDDIR)/$(TARGET)
 
 build: $(OBJ) $(TARGET)
 
-run:
+run: build
 	cd $(BUILDDIR); ./$(TARGET)
 
 $(TARGET): $(OBJ)

@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 
 #include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp>
 
 #include "geometry.h"
 #include "entity.h"
@@ -27,8 +28,11 @@ private:
 
     Entity parentEntity;
     Entity childEntity;
+    Entity cameraEntity;
 
     GeometryData geometry;
+
+    glm::mat4 viewingMat;
 
     int colorIndex;
     int translateDirection;
