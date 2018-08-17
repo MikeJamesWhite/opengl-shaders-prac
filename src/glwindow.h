@@ -8,6 +8,7 @@
 
 #include "geometry.h"
 #include "entity.h"
+#include "light.h"
 
 class OpenGLWindow
 {
@@ -25,10 +26,13 @@ private:
     GLuint vao;
     GLuint shader;
     GLuint vertexBuffer;
+    GLuint normBuffer;
 
     Entity parentEntity;
     Entity childEntity;
     Entity cameraEntity;
+    Light light1;
+    Light light2;
 
     GeometryData geometry;
 
@@ -38,6 +42,7 @@ private:
     int translateDirection;
     int rotateDirection;
     int scaleDirection;
+    double frameCounter = 0;
 };
 
 #endif

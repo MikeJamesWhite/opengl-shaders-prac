@@ -158,6 +158,14 @@ void OpenGLWindow::initGL()
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    // create lights
+    light1.color = glm::vec3(1.0, 0.0, 0.0);
+    light2.color = glm::vec3(0.0, 0.0, 1.0);
+    light1.position = glm::vec3(1.0, 0.0, 0.0);
+    light2.position = glm::vec3(-1.0, 0.0, 0.0);
+
+
+    // load shader
     shader = loadShaderProgram("simple.vert", "simple.frag");
     glUseProgram(shader);
 
@@ -177,6 +185,15 @@ void OpenGLWindow::initGL()
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, false, 0, 0);
     glEnableVertexAttribArray(vertexLoc);
 
+    // buffer norm data
+    int normalLoc = glGetAttribLocation(shader, "normal");
+    glGenBuffers(1, &normBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normBuffer);
+    glBufferData(GL_ARRAY_BUFFER, 3*geometry.vertexCount()*sizeof(float),
+                 geometry.normalData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(normalLoc, 3, GL_FLOAT, false, 0, 0);
+    glEnableVertexAttribArray(normalLoc);
+
     glPrintError("Setup complete", true);
 }
 
@@ -189,6 +206,30 @@ void OpenGLWindow::render()
                                0.0f, 1.0f, 0.0f,
                                0.0f, 0.0f, 1.0f,
                                0.2f, 0.2f, 0.2f };
+
+    // handle light stuff
+
+    int light1posLoc = glGetUniformLocation(shader, "light1Pos");
+    glUniform3fv(light1posLoc, 1, &light1.position[0]);
+
+    int light1colLoc = glGetUniformLocation(shader, "light1Color");
+    glUniform3fv(light1colLoc, 1, &light1.color[0]);
+
+    int light2posLoc = glGetUniformLocation(shader, "light2Pos");
+    glUniform3fv(light2posLoc, 1, &light2.position[0]);
+
+    int light2colLoc = glGetUniformLocation(shader, "light2Color");
+    glUniform3fv(light2colLoc, 1, &light2.color[0]);
+
+    int cameraPosLoc = glGetUniformLocation(shader, "CameraPos");
+    glUniform3fv(cameraPosLoc, 1, &cameraEntity.position[0]);
+
+    // move lights
+    light1.position.x = 1.0f + sin(frameCounter) * 3.0f;
+    light1.position.y = sin(frameCounter / 2.0f) * 2.0f;
+
+    light2.position.x = 1.0f + sin(1 + frameCounter) * 3.0f;
+    light2.position.y = sin(1 + frameCounter / 2.0f) * 2.0f;
 
     // NOTE: glm::translate/rotate/scale apply the transformation by right-multiplying by the
     //       corresponding transformation matrix (T). IE glm::translate(M, v) = M * T, not T*M
@@ -240,6 +281,8 @@ void OpenGLWindow::render()
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
     SDL_GL_SwapWindow(sdlWin);
+
+    frameCounter += 0.01;
 }
 
 // The program will exit if this function returns false
