@@ -27,6 +27,7 @@ private:
     GLuint shader;
     GLuint vertexBuffer;
     GLuint normBuffer;
+    GLuint textureBuffer;
 
     Entity parentEntity;
     Entity childEntity;
@@ -42,6 +43,8 @@ private:
     int translateDirection;
     int rotateDirection;
     int scaleDirection;
+    unsigned int texture;
+    unsigned char* textureData;
     double frameCounter = 0;
 };
 

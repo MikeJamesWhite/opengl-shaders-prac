@@ -2,13 +2,14 @@
 
 in vec3 Normal;
 in vec3 FragPos;
+in vec2 TextureCoord;
+in vec3 Light1Pos;
+in vec3 Light2Pos;
 
-uniform vec3 CameraPos;
+uniform sampler2D objectTexture;
 uniform vec3 objectColor;
 uniform vec3 light1Color;
 uniform vec3 light2Color;
-uniform vec3 light1Pos;
-uniform vec3 light2Pos;
 
 out vec4 outColor;
 
@@ -16,7 +17,7 @@ void main()
 {
     // attributes
     float ambientStrength = 0.1;
-    float specularStrength = 0.0;
+    float specularStrength = 0.5;
 
     // ambient lighting
     vec3 ambient = ambientStrength * (light1Color+light2Color);
@@ -25,17 +26,17 @@ void main()
     vec3 norm = normalize(Normal);
 
     // light1 diffuse
-    vec3 light1Dir = normalize(light1Pos - FragPos); 
+    vec3 light1Dir = normalize(Light1Pos - FragPos); 
     float diff1 = max(dot(norm, light1Dir), 0.0);
 
     // light2 diffuse
-    vec3 light2Dir = normalize(light2Pos - FragPos); 
+    vec3 light2Dir = normalize(Light2Pos - FragPos); 
     float diff2 = max(dot(norm, light2Dir), 0.0);
 
     vec3 diffuse = (diff1 * light1Color) + (diff2 * light2Color); // combine diffuse lighting
 
     // specular lighting
-    vec3 viewDir = normalize(CameraPos - FragPos);
+    vec3 viewDir = normalize(-FragPos);
 
     // light1 specular
     vec3 reflectDir1 = reflect(-light1Dir, norm);  
@@ -49,5 +50,5 @@ void main()
 
     // apply lighting
     vec3 result = (ambient + diffuse + specular) * objectColor;
-    outColor = vec4(result, 1.0);
+    outColor = texture(objectTexture, TextureCoord) * vec4(result, 1.0);
 }

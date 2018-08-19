@@ -10,6 +10,9 @@
 #include "glwindow.h"
 #include "geometry.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 using namespace std;
 
 const char* glGetErrorString(GLenum error)
@@ -153,21 +156,49 @@ void OpenGLWindow::initGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-    glClearColor(0,0,0,1);
+    glClearColor(0.1,0.1,0.125,1);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     // create lights
-    light1.color = glm::vec3(1.0, 0.0, 0.0);
-    light2.color = glm::vec3(0.0, 0.0, 1.0);
-    light1.position = glm::vec3(1.0, 0.0, 0.0);
-    light2.position = glm::vec3(-1.0, 0.0, 0.0);
-
+    light1.color = glm::vec3(0.6, 0.0, 0.2);
+    light2.color = glm::vec3(0.0, 0.5, 0.3);
+    light1.position = glm::vec3(2.0, 0.0, 0.0);
+    light2.position = glm::vec3(-2.0, 0.0, 0.0);
 
     // load shader
     shader = loadShaderProgram("simple.vert", "simple.frag");
     glUseProgram(shader);
+
+    // load texture
+    int x,y,n;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    textureData = stbi_load("../resources/textureDiffuse.png", &x, &y, &n, 3);
+
+    if (textureData) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else {
+        cout << "Error loading texture!" << endl;
+    }
+
+    int textureLoc = glGetAttribLocation(shader, "textureCoord");
+    glGenBuffers(1, &textureBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, textureBuffer);
+    glBufferData(GL_ARRAY_BUFFER, 2*geometry.vertexCount()*sizeof(float),
+                 geometry.textureCoordData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(textureLoc, 2, GL_FLOAT, false, 0, 0);
+    glEnableVertexAttribArray(textureLoc);
+
+    stbi_image_free(textureData);
 
     // Set ourprojection matrix, since these do not change over time
     glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), 4.0f/3.0f, 0.1f, 10.0f);
@@ -207,8 +238,17 @@ void OpenGLWindow::render()
                                0.0f, 0.0f, 1.0f,
                                0.2f, 0.2f, 0.2f };
 
-    // handle light stuff
+    // Update camera stuff
+    glm::vec3 eyeLoc(0.0f, 0.0f, 2.0f);
+    glm::vec3 targetLoc(0.0f, 0.0f, 0.0f);
+    glm::vec3 upDir(0.0f, 1.0f, 0.0f);
+    viewingMat = glm::lookAt(eyeLoc, targetLoc, upDir);
 
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.x, glm::vec3(1.00f, 0.0f, 0.0f));
+
+    // Update light stuff
     int light1posLoc = glGetUniformLocation(shader, "light1Pos");
     glUniform3fv(light1posLoc, 1, &light1.position[0]);
 
@@ -221,15 +261,11 @@ void OpenGLWindow::render()
     int light2colLoc = glGetUniformLocation(shader, "light2Color");
     glUniform3fv(light2colLoc, 1, &light2.color[0]);
 
-    int cameraPosLoc = glGetUniformLocation(shader, "CameraPos");
-    glUniform3fv(cameraPosLoc, 1, &cameraEntity.position[0]);
+    light1.position.x = sin(frameCounter) * 4.0f;
+    light1.position.y = cos(frameCounter) * 4.0f;
 
-    // move lights
-    light1.position.x = 1.0f + sin(frameCounter) * 3.0f;
-    light1.position.y = sin(frameCounter / 2.0f) * 2.0f;
-
-    light2.position.x = 1.0f + sin(1 + frameCounter) * 3.0f;
-    light2.position.y = sin(1 + frameCounter / 2.0f) * 2.0f;
+    light2.position.x = sin(3.14 + frameCounter) * 4.0f;
+    light2.position.y = cos(3.14 + frameCounter) * 4.0f;
 
     // NOTE: glm::translate/rotate/scale apply the transformation by right-multiplying by the
     //       corresponding transformation matrix (T). IE glm::translate(M, v) = M * T, not T*M
@@ -246,6 +282,7 @@ void OpenGLWindow::render()
     int colorLoc = glGetUniformLocation(shader, "objectColor");
     glUniform3fv(colorLoc, 1, &entityColors[3*colorIndex]);
 
+    glBindTexture(GL_TEXTURE_2D, texture);
     glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount());
 
     // NOTE: This assumes that we're using the same mesh for the child and parent object, if
@@ -261,28 +298,14 @@ void OpenGLWindow::render()
     childModelMat = modelMat * childModelMat;
     glUniformMatrix4fv(modelMatrixLoc, 1, false, &childModelMat[0][0]);
 
-    // Update camera stuff
-    glm::vec3 eyeLoc(0.0f, 0.0f, 2.0f);
-    glm::vec3 targetLoc(0.0f, 0.0f, 0.0f);
-    glm::vec3 upDir(0.0f, 1.0f, 0.0f);
-    viewingMat = glm::lookAt(eyeLoc, targetLoc, upDir);
-
-    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-    viewingMat = glm::rotate(viewingMat, cameraEntity.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-
     int viewingMatrixLoc = glGetUniformLocation(shader, "viewingMatrix");
     glUniformMatrix4fv(viewingMatrixLoc, 1, false, &viewingMat[0][0]);
 
-    int childColorIndex = (colorIndex+1)%5;
-    glUniform3fv(colorLoc, 1, &entityColors[3*childColorIndex]);
     glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount());
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
     SDL_GL_SwapWindow(sdlWin);
-
-    frameCounter += 0.01;
 }
 
 // The program will exit if this function returns false
@@ -345,7 +368,14 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             cameraEntity.rotation[rotateDirection] += glm::radians(15.0f);
         }
 
+        if (e.key.keysym.sym == SDLK_l) {
+           frameCounter += 0.1;
+        }
+        else if (e.key.keysym.sym == SDLK_k) {
+           frameCounter -= 0.1;
+        }    
     }
+
     return true;
 }
 
