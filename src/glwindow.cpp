@@ -282,6 +282,7 @@ void OpenGLWindow::render()
     int colorLoc = glGetUniformLocation(shader, "objectColor");
     glUniform3fv(colorLoc, 1, &entityColors[3*colorIndex]);
 
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount());
 

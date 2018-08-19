@@ -7,7 +7,7 @@ Controls:
 =========
 Q,E - Translate the objects
 W - Cycle through the axes of translation
-A,D - Rotate the objects
+A,D - Rotate the camera
 S - Cycle through the axes of rotation
-Z,C - Scale the objects
-X - Cycle through the axes of scaling
+K,L - Move the lights in an orbit
+
